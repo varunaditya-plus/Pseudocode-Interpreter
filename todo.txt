@@ -1,0 +1,4 @@
+1. finish docs (update)
+2. fix while loops
+3. test everything
+4. stop it from killing ur ram
