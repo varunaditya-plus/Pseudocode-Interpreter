@@ -155,11 +155,6 @@ export function executeWhileStatement(statement, environment, interpreter) {
       if (interpreter.checkMemoryUsage()) {
         throw errors.createRuntimeError("Memory limit exceeded in while loop. Program terminated.", interpreter.currentLine);
       }
-      
-      // Check if we've exceeded the maximum execution lines
-      if (interpreter.executionLineCount > interpreter.MAX_EXECUTION_LINES) {
-        throw errors.createRuntimeError(`Maximum line limit (${interpreter.MAX_EXECUTION_LINES}) exceeded at /Users/varunaditya/Desktop/pseudocode-interpreter/src/`, interpreter.currentLine);
-      }
     }
   }
 }

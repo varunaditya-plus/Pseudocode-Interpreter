@@ -19,6 +19,9 @@ export class Interpreter {
     // Output buffer
     this.output = [];
     
+    // Add output callback
+    this.outputCallback = null;
+    
     // Input queue for input statements
     this.inputQueue = [];
     
@@ -61,8 +64,16 @@ export class Interpreter {
     return false; // Memory usage is acceptable
   }
   
-  addOutput(message) {
+  setOutputCallback(callback) {
+    this.outputCallback = callback;
+  }
+  
+  addOutput(message, isError = false) {
     this.output.push(message);
+    
+    if (this.outputCallback && typeof this.outputCallback === 'function') {
+      this.outputCallback(message, isError ? 'error' : 'output');
+    }
     
     // Keep only the latest MAX_OUTPUT_LINES lines
     if (this.output.length > this.MAX_OUTPUT_LINES) {
@@ -71,7 +82,9 @@ export class Interpreter {
     
     this.executionLineCount++;
     
-    if (this.executionLineCount > this.MAX_EXECUTION_LINES) {
+    // Check if we've already exceeded the limit
+    if (!this.limitExceeded && this.executionLineCount > this.MAX_EXECUTION_LINES) {
+      this.limitExceeded = true;
       throw errors.createRuntimeError(`Maximum line limit (${this.MAX_EXECUTION_LINES}) exceeded. Program terminated.`, this.currentLine);
     }
     
@@ -94,10 +107,24 @@ export class Interpreter {
   
   interpret(ast) {
     try {
-      this.executeProgram(ast);
-      return this.output.join('\n');
+      if (ast && ast.type === 'Program' && ast.statements) {
+        for (const statement of ast.statements) {
+          try {
+            this.executeStatement(statement);
+          } catch (error) {
+            this.addOutput(`Error: ${error.message}`, true);
+            if (error.isCritical) {
+              break;
+            }
+          }
+        }
+        return this.output.join('\n');
+      } else {
+        this.executeProgram(ast);
+        return this.output.join('\n');
+      }
     } catch (error) {
-      this.addOutput(`Error: ${error.message}`);
+      this.addOutput(`Error: ${error.message}`, true);
       return this.output.join('\n');
     }
   }
@@ -122,6 +149,9 @@ export class Interpreter {
       }
       
       switch (statement.type) {
+        case 'ErrorStatement':
+          this.addOutput(`Error at line ${statement.line}: ${statement.message}`, true);
+          return;
         case 'VariableDeclaration':
           return assignments.executeVariableDeclaration(statement, this.environment);
         

@@ -51,7 +51,24 @@ export class Parser {
       const statements = [];
       
       while (!this.isAtEnd()) {
-        statements.push(this.declaration());
+        try {
+          const statement = this.declaration();
+          statement.line = this.previous().line;
+          statement.column = this.previous().column;
+          statements.push(statement);
+        } catch (error) {
+          console.error(error.message);
+
+          // this.synchronize(); // continue parsing, idk if this should be an option or what
+
+          // placeholder error statement
+          statements.push({
+            type: 'ErrorStatement',
+            message: error.message,
+            line: error.line,
+            column: error.column
+          });
+        }
       }
       
       return {
@@ -61,6 +78,34 @@ export class Parser {
     } catch (error) {
       console.error(error.message);
       throw error;
+    }
+  }
+  
+  // synchronize method to skip to next statement
+  synchronize() {
+    this.advance();
+    
+    while (!this.isAtEnd()) {
+      if (this.previous().type === TokenType.SEMICOLON) return;
+      
+      switch (this.peek().type) {
+        case TokenType.DECLARE:
+        case TokenType.CONSTANT:
+        case TokenType.PROCEDURE:
+        case TokenType.FUNCTION:
+        case TokenType.IF:
+        case TokenType.FOR:
+        case TokenType.WHILE:
+        case TokenType.REPEAT:
+        case TokenType.CASE:
+        case TokenType.INPUT:
+        case TokenType.OUTPUT:
+        case TokenType.CALL:
+        case TokenType.RETURN:
+          return;
+      }
+      
+      this.advance();
     }
   }
 

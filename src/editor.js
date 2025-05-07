@@ -4,7 +4,6 @@ import { Interpreter } from './interpreter/interpreter.js';
 import { initializeFileBrowser, getFileContent, saveFileContent } from './interpreter/modules/files.js';
 
 const PlayIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
-const AlertCircleIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
 
 export function initEditor(appContainer) {
   const app = appContainer;
@@ -30,26 +29,16 @@ export function initEditor(appContainer) {
           </div>
         </div>
 
-        <div class="w-full h-[30%] flex flex-row shadow-md gap-2">
-          <div class="w-[65%] relative">
-            <button
-              id="run-button"
-              class="absolute top-2 right-2 z-[10] flex items-center gap-2 bg-[#272c36] hover:bg-[#343945] text-white rounded-md p-2 transition-colors cursor-pointer"
-              title="Run Code (Ctrl+Enter or Cmd+Enter)"
-            >
-              ${PlayIcon}
-            </button>
-            <div id="output" class="w-full h-full overflow-auto p-5 font-mono text-sm bg-[#181A1F] text-[#fff] rounded-lg">
-              <div class="text-[#525b6b]">// No output yet. Run your code to see results.</div>
-            </div>
-          </div>
-
-          <div class="w-[35%] flex flex-col bg-[#181A1F] rounded-lg">
-            <div class="flex-grow overflow-hidden">
-              <div id="errors" class="h-full overflow-auto p-5 font-mono text-sm">
-                <div class="text-[#525b6b]">// No problems detected.</div>
-              </div>
-            </div>
+        <div class="w-full h-[30%] relative">
+          <button
+            id="run-button"
+            class="absolute top-2 right-2 z-[10] flex items-center gap-2 bg-[#272c36] hover:bg-[#343945] text-white rounded-md p-2 transition-colors cursor-pointer"
+            title="Run Code (Ctrl+Enter or Cmd+Enter)"
+          >
+            ${PlayIcon}
+          </button>
+          <div id="output" class="w-full h-full overflow-auto p-5 font-mono text-sm bg-[#181A1F] text-[#fff] rounded-lg">
+            <div class="text-[#525b6b]">// No output yet. Run your code to see results.</div>
           </div>
         </div>
       </div>
@@ -70,7 +59,6 @@ export function initEditor(appContainer) {
   const lineNumbers = document.getElementById('line-numbers');
   const runButton = document.getElementById('run-button');
   const outputElement = document.getElementById('output');
-  const errorsElement = document.getElementById('errors');
   
   let currentFile = 'app.pseudo';
 
@@ -151,43 +139,29 @@ export function initEditor(appContainer) {
     
     try {
       outputElement.innerHTML = '';
-      errorsElement.innerHTML = '';
+      
+      interpreter.setOutputCallback((message, type = 'output') => {
+        const div = document.createElement('div');
+        div.className = 'mb-1 whitespace-pre-wrap';
+        
+        if (type === 'error') {
+          div.className += ' text-red-400';
+          console.error(message);
+        }
+        
+        div.textContent = message;
+        outputElement.appendChild(div);
+        outputElement.scrollTop = outputElement.scrollHeight;
+      });
       
       const result = interpreter.execute(code);
-      
-      if (interpreter.output.length > 0) {
-        interpreter.output.forEach(line => {
-          const div = document.createElement('div');
-          div.className = 'mb-1 whitespace-pre-wrap';
-          div.textContent = line;
-          outputElement.appendChild(div);
-        });
-      } else {
-        outputElement.innerHTML = '<div class="text-[#525b6b]">// No output generated.</div>';
-      }
-      
-      if (interpreter.errors && interpreter.errors.length > 0) {
-        interpreter.errors.forEach(error => {
-          const div = document.createElement('div');
-          div.className = 'text-red-400 mb-3 flex items-start';
-          div.innerHTML = `
-            ${AlertCircleIcon}
-            <span class="ml-3">${error}</span>
-          `;
-          errorsElement.appendChild(div);
-        });
-      } else {
-        errorsElement.innerHTML = '<div class="text-[#525b6b]">// No problems detected.</div>';
-      }
     } catch (error) {
-      errorsElement.innerHTML = `
-        <div class="text-red-400 mb-3 flex items-start">
-          ${AlertCircleIcon}
-          <span class="ml-3">${error.message || 'Unknown error occurred'}</span>
-        </div>
-      `;
+      if (!error.displayed) {
+        console.error(error.message || 'Unknown error occurred');
+        interpreter.addError(error.message || 'Unknown error occurred');
+      }
     }
-  }
+}
 }
 
 class BrowserInterpreter {
@@ -197,21 +171,43 @@ class BrowserInterpreter {
     this.interpreter = new Interpreter();
     this.output = [];
     this.errors = [];
+    this.outputCallback = null;
   }
   
   reset() {
     this.interpreter.reset();
     this.output = [];
     this.errors = [];
+    
+    // Re-set the output callback after reset
+    if (this.outputCallback) {
+      this.interpreter.setOutputCallback(this.outputCallback);
+    }
+  }
+  
+  setOutputCallback(callback) {
+    this.outputCallback = callback;
+    this.interpreter.setOutputCallback(callback);
   }
   
   addOutput(message) {
     this.output.push(message);
+    
+    // Call the callback if it exists
+    if (this.outputCallback && typeof this.outputCallback === 'function') {
+      this.outputCallback(message);
+    }
+    
     return message;
   }
   
   addError(message) {
     this.errors.push(message);
+    
+    if (this.outputCallback && typeof this.outputCallback === 'function') {
+      this.outputCallback(message, 'error');
+    }
+        
     return message;
   }
   
