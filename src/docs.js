@@ -301,18 +301,18 @@ function sectionOperatorsExpressions() {
   `;
 }
 
-function sectionSelection() { // update (this and below)
+function sectionSelection() {
   return `
   <div id="section-selection" class="bg-[#181A1F] rounded-lg p-5 shadow-md space-y-4">
     <h2 class="text-xl font-semibold flex items-center mb-4 text-blue-400">
       ${ChevronRightIcon}
       <span class="ml-1">Selection</span>
     </h2>
-    <p>Selection statements allow your program to make decisions and execute different code based on conditions. Pseudocode supports both IF statements for simple conditions and CASE statements for multiple value matching.</p>
+    <p>Selection statements allow your program to make decisions and execute different code based on conditions. Pseudocode has IF statements for simple conditions and CASE statements for multiple value matching. In the two boxes below, you can see what each does and how they are formatted.</p>
     
     <div class="bg-[#1D1F26] rounded-lg p-4">
       <h3 class="text-lg font-medium mb-2">IF Statements</h3>
-      <p class="mb-2">IF statements check a condition and execute different code blocks depending on whether the condition is TRUE or FALSE. You can use the simple form with just THEN and ENDIF, or include an ELSE branch for alternative actions.</p>
+      <p class="mb-2">IF statements check a condition and execute different code blocks depending on whether the condition is TRUE or FALSE. You can use the simple form with just THEN and ENDIF, or include an ELSE branch for alternative actions. In other languages like python, there is 'elif', but in Pseudocode you gotta do it the hard way.</p>
       <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">IF condition THEN
     statements
 ENDIF
@@ -321,6 +321,16 @@ IF condition THEN
     statements
 ELSE
     statements
+ENDIF</pre>
+      <p class="my-2">Below is an example of an IF statement which gives a different greeting depending on the person's name:</p>
+      <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">IF name = "Jacob" THEN
+    OUTPUT "Get out of here. I dont like you"
+ELSE
+    IF name = "Varun" THEN
+        OUTPUT "Hello Varun, you're amazing! How are you?"
+    ELSE
+        OUTPUT "Hello, " + name + "! Who are you?"
+    ENDIF
 ENDIF</pre>
     </div>
     
@@ -331,6 +341,13 @@ ENDIF</pre>
   value1 : statements
   value2 : statements
   OTHERWISE statements
+ENDCASE</pre>
+      <p class="my-2">Below is an example of a CASE statement depending on the value of a variable:</p>
+<pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">CASE grade OF
+    "A": OUTPUT "Excellent!"
+    "B": OUTPUT "Good job!"
+    "C": OUTPUT "Passed"
+    OTHERWISE: OUTPUT "Try again"
 ENDCASE</pre>
     </div>
   </div>
@@ -344,25 +361,45 @@ function sectionIteration() {
       ${ChevronRightIcon}
       <span class="ml-1">Iteration</span>
     </h2>
-    <p>Iteration (looping) allows you to repeat a block of code multiple times. Pseudocode supports three types of loops: FOR loops for counting, REPEAT UNTIL loops, and WHILE loops.</p>
+    <p>Iteration (looping) allows you to repeat a block of code multiple times. Pseudocode supports three types of loops: FOR loops for counting, REPEAT UNTIL loops, and WHILE loops (you can guess what each of them do).</p>
     
-    <div class="bg-[#1D1F26] rounded-lg p-4 space-y-3">
-      <h3 class="text-lg font-medium mb-2">FOR Loop</h3>
+    <div class="bg-[#1D1F26] rounded-lg p-4">
+      <h3 class="text-lg font-medium mb-2">FOR loop</h3>
       <p class="mb-2">FOR loops are used when you know in advance how many times you want to repeat a block of code. The loop counter automatically increments (or decrements if using a negative STEP) with each iteration.</p>
       <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">FOR i ← start TO end [STEP step]
     statements
 NEXT i</pre>
-      
-      <h3 class="text-lg font-medium mb-2">REPEAT UNTIL</h3>
+      <p class="my-2">Below is an example of a FOR loop that prints the numbers 1 to 5:</p>
+      <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">FOR counter ← 1 TO 5
+    OUTPUT counter
+NEXT counter</pre>
+    </div>
+    
+    <div class="bg-[#1D1F26] rounded-lg p-4">
+      <h3 class="text-lg font-medium mb-2">REPEAT UNTIL loop</h3>
       <p class="mb-2">REPEAT UNTIL loops execute a block of code at least once, and then continue repeating until a specified condition becomes TRUE. This is useful when you want the code to run at least once regardless of the condition.</p>
       <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">REPEAT
     statements
 UNTIL condition</pre>
-      
-      <h3 class="text-lg font-medium mb-2">WHILE DO</h3>
+      <p class="my-2">Below is an example of a REPEAT UNTIL loop that validates user input:</p>
+      <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">REPEAT
+    OUTPUT "Enter a positive number:"
+    INPUT number
+UNTIL number > 0</pre>
+    </div>
+    
+    <div class="bg-[#1D1F26] rounded-lg p-4">
+      <h3 class="text-lg font-medium mb-2">WHILE loop</h3>
       <p class="mb-2">WHILE DO loops check a condition first, and only execute the code block if the condition is TRUE. If the condition is initially FALSE, the code block will not run at all.</p>
       <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">WHILE condition DO
     statements
+ENDWHILE</pre>
+      <p class="my-2">Below is an example of a WHILE loop that calculates a sum:</p>
+      <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">sum ← 0
+x ← 1
+WHILE x <= 10 DO
+    sum ← sum + x
+    x ← x + 1
 ENDWHILE</pre>
     </div>
   </div>
@@ -376,7 +413,7 @@ function sectionProceduresFunctions() {
       ${ChevronRightIcon}
       <span class="ml-1">Procedures & Functions</span>
     </h2>
-    <p>Procedures and functions help organize code into reusable blocks. Procedures perform actions but don't return values, while functions process data and return a result.</p>
+    <p>Procedures and functions help organize code into reusable blocks so you don't have to keep repeating code. You can add parameters to both which can affect the actions the function/procedure takes. Procedures and functions are basically the same, except that procedures don't return values, while functions do.</p>
     
     <div class="bg-[#1D1F26] rounded-lg p-4">
       <h3 class="text-lg font-medium mb-2">Procedures</h3>
@@ -386,7 +423,15 @@ function sectionProceduresFunctions() {
 ENDPROCEDURE
 
 CALL Name(args)</pre>
+      <p class="my-2">Below is an example of a procedure that prints a greeting message with the given name:</p>
+      <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">PROCEDURE Greet(name)
+    OUTPUT "Hello, " + name + "! Welcome to our program."
+ENDPROCEDURE
+
+CALL Greet("Varun")   // Outputs: Hello, Varun! Welcome to our program.
+CALL Greet("Jacob")   // Outputs: Hello, Jacob! Welcome to our program.</pre>
     </div>
+    
     <div class="bg-[#1D1F26] rounded-lg p-4">
       <h3 class="text-lg font-medium mb-2">Functions</h3>
       <p class="mb-2">Functions are similar to procedures but return a value. They're useful for calculations or operations that produce a result. Assign the function's return value to a variable using the assignment operator.</p>
@@ -396,6 +441,15 @@ CALL Name(args)</pre>
 ENDFUNCTION
 
 Result ← Name(args)</pre>
+      <p class="my-2">Below is an example of a function that calculates the average of two numbers:</p>
+      <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">FUNCTION Average(num1, num2) RETURNS REAL
+    RETURN (num1 + num2) / 2
+ENDFUNCTION
+
+score1 ← 85
+score2 ← 91
+avgScore ← Average(score1, score2)  // avgScore will be 88.0
+OUTPUT "The average score is: " + avgScore</pre>
     </div>
   </div>
   `;
@@ -418,8 +472,7 @@ READFILE fileId, variable
 WRITEFILE fileId, variable
 CLOSEFILE fileId</pre>
       
-      <h3 class="text-lg font-medium mb-2">Example</h3>
-      <p class="mb-2">Below is an example of copying one line from FileA.txt to FileB.txt:</p>
+      <p class="my-2">Below is an example of copying one line from FileA.txt to FileB.txt:</p>
       <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono">DECLARE line : STRING
 OPENFILE "FileA.txt" FOR READ
 OPENFILE "FileB.txt" FOR WRITE
@@ -439,10 +492,8 @@ function sectionExample() {
       ${ChevronRightIcon}
       <span class="ml-1">Example Program</span>
     </h2>
-    <p>The following example demonstrates many of the pseudocode features covered in this guide. This program calculates the factorial of a number entered by the user, showing the use of variables, input/output, selection, and iteration.</p>
+    <p>The following example demonstrates many of the pseudocode features covered in this documentation. This program calculates the factorial of a number entered by the user, showing the use of variables, input/output, selection, and iteration.</p>
     
-    <div class="bg-[#1D1F26] rounded-lg p-4">
-      <h3 class="text-lg font-medium mb-2">Factorial Calculator</h3>
       <pre class="bg-[#272a34] p-2 border border-[#353843] rounded-md font-mono overflow-auto">// Calculate factorial
 DECLARE num : INTEGER
 DECLARE factorial : INTEGER
@@ -459,7 +510,6 @@ ELSE
     NEXT i
     OUTPUT "Factorial of " + num + " is " + factorial
 ENDIF</pre>
-    </div>
   </div>
   `;
 }
