@@ -54,9 +54,24 @@ export const executeForStatement = (statement, environment, interpreter) => {
   // Initialize loop variable
   environment.variables[variable] = startValue;
   
+  // Add iteration counter
+  let iterationCount = 0;
+  const MAX_ITERATIONS = 10000; // Prevent infinite loops
+  
   if (stepValue > 0) {
     // Ascending loop
     for (let i = startValue; i <= endValue; i += stepValue) {
+      // Check iteration count
+      if (iterationCount++ > MAX_ITERATIONS) {
+        interpreter.addOutput("WARNING: Loop iteration limit reached. Possible infinite loop detected.");
+        break;
+      }
+      
+      // Check memory usage
+      if (interpreter.checkMemoryUsage()) {
+        break; // Memory limit exceeded, stop execution
+      }
+      
       environment.variables[variable] = i;
       
       for (const stmt of body) {
@@ -66,6 +81,17 @@ export const executeForStatement = (statement, environment, interpreter) => {
   } else {
     // Descending loop
     for (let i = startValue; i >= endValue; i += stepValue) {
+      // Check iteration count
+      if (iterationCount++ > MAX_ITERATIONS) {
+        interpreter.addOutput("WARNING: Loop iteration limit reached. Possible infinite loop detected.");
+        break;
+      }
+      
+      // Check memory usage
+      if (interpreter.checkMemoryUsage()) {
+        break; // Memory limit exceeded, stop execution
+      }
+      
       environment.variables[variable] = i;
       
       for (const stmt of body) {
@@ -79,7 +105,28 @@ export const executeRepeatStatement = (statement, environment, interpreter) => {
   const { body, condition } = statement;
   console.log(`Starting REPEAT-UNTIL loop`);
   
+  // Add iteration counter
+  let iterationCount = 0;
+  const MAX_ITERATIONS = 1000000; // Prevent infinite loops
+  
   do {
+    if (iterationCount++ > MAX_ITERATIONS) {
+      interpreter.addOutput("WARNING: Loop iteration limit reached. Possible infinite loop detected.");
+      
+      const shouldContinue = confirm("Possible infinite loop detected. Continue execution?");
+      if (!shouldContinue) {
+        interpreter.addOutput("Execution terminated by user due to possible infinite loop.");
+        break;
+      }
+      
+      iterationCount = 0;
+    }
+    
+    // Check memory usage
+    if (interpreter.checkMemoryUsage()) {
+      break; // Memory limit exceeded, stop execution
+    }
+    
     for (const stmt of body) {
       interpreter.executeStatement(stmt);
     }
@@ -87,13 +134,42 @@ export const executeRepeatStatement = (statement, environment, interpreter) => {
   } while (!interpreter.evaluateExpression(condition));
 };
 
-export const executeWhileStatement = (statement, environment, interpreter) => {
+export function executeWhileStatement(statement, environment, interpreter) {
   const { condition, body } = statement;
   console.log(`Starting WHILE loop`);
   
-  while (interpreter.evaluateExpression(condition)) {
+  let iterationCount = 0;
+  const MAX_ITERATIONS_WITHOUT_CHECK = 100;
+  
+  while (evaluateCondition(condition, environment, interpreter)) {
     for (const stmt of body) {
       interpreter.executeStatement(stmt);
     }
+    
+    iterationCount++;
+    
+    if (iterationCount >= MAX_ITERATIONS_WITHOUT_CHECK) {
+      iterationCount = 0;
+      
+      // Check memory usage
+      if (interpreter.checkMemoryUsage()) {
+        throw errors.createRuntimeError("Memory limit exceeded in while loop. Program terminated.", interpreter.currentLine);
+      }
+      
+      // Check if we've exceeded the maximum execution lines
+      if (interpreter.executionLineCount > interpreter.MAX_EXECUTION_LINES) {
+        throw errors.createRuntimeError(`Maximum line limit (${interpreter.MAX_EXECUTION_LINES}) exceeded at /Users/varunaditya/Desktop/pseudocode-interpreter/src/`, interpreter.currentLine);
+      }
+    }
   }
-};
+}
+
+function evaluateCondition(condition, environment, interpreter) {
+  const result = interpreter.evaluateExpression(condition);
+  
+  if (typeof result !== 'boolean') {
+    throw errors.createTypeError('Condition must evaluate to a boolean', interpreter.currentLine);
+  }
+  
+  return result;
+}

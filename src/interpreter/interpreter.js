@@ -24,6 +24,13 @@ export class Interpreter {
     
     // Current line being executed
     this.currentLine = 0;
+    
+    // Output line limit
+    this.MAX_OUTPUT_LINES = 1000;
+    
+    // Line count for execution limit
+    this.executionLineCount = 0;
+    this.MAX_EXECUTION_LINES = 1000;
   }
   
   reset() {
@@ -38,8 +45,36 @@ export class Interpreter {
     this.currentLine = 0;
   }
  
+  // Add this method to check memory usage
+  checkMemoryUsage() {
+    // Check if memory usage exceeds 1GB (1073741824 bytes)
+    if (window.performance && window.performance.memory) {
+      const memoryInfo = window.performance.memory;
+      const usedHeapSize = memoryInfo.usedJSHeapSize;
+      const memoryLimitBytes = 1073741824; // 1GB in bytes
+      
+      if (usedHeapSize > memoryLimitBytes) {
+        this.addOutput("ERROR: Memory limit exceeded (1GB). Program execution terminated.");
+        return true; // Memory limit exceeded
+      }
+    }
+    return false; // Memory usage is acceptable
+  }
+  
   addOutput(message) {
     this.output.push(message);
+    
+    // Keep only the latest MAX_OUTPUT_LINES lines
+    if (this.output.length > this.MAX_OUTPUT_LINES) {
+      this.output = this.output.slice(-this.MAX_OUTPUT_LINES);
+    }
+    
+    this.executionLineCount++;
+    
+    if (this.executionLineCount > this.MAX_EXECUTION_LINES) {
+      throw errors.createRuntimeError(`Maximum line limit (${this.MAX_EXECUTION_LINES}) exceeded. Program terminated.`, this.currentLine);
+    }
+    
     return message;
   }
   
@@ -80,6 +115,11 @@ export class Interpreter {
   executeStatement(statement) {
     try {
       this.currentLine = statement.line || this.currentLine;
+      this.executionLineCount++;
+      
+      if (this.executionLineCount > this.MAX_EXECUTION_LINES) {
+        throw errors.createRuntimeError(`Maximum line limit (${this.MAX_EXECUTION_LINES}) exceeded at /Users/varunaditya/Desktop/pseudocode-interpreter/src/`, this.currentLine);
+      }
       
       switch (statement.type) {
         case 'VariableDeclaration':
