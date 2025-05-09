@@ -59,7 +59,7 @@ export class Parser {
         } catch (error) {
           console.error(error.message);
 
-          // this.synchronize(); // continue parsing, idk if this should be an option or what
+          this.synchronize();
 
           // placeholder error statement
           statements.push({

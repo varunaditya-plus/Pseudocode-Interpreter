@@ -1,4 +1,9 @@
-1. finish docs (update)
-2. fix while loops
+2. fix while loops. eg:
+DECLARE Hi : INTEGER
+Hi = 0
+WHILE 1 = 1 DO
+Hi = Hi + 1
+OUTPUT Hi
+ENDWHILE
+
 3. test everything
-4. stop it from killing ur ram
