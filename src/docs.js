@@ -1,3 +1,5 @@
+import { highlightPseudocodeInPre } from './monaco-lang.js';
+
 const ChevronRightIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
 const BookIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`;
 
@@ -60,6 +62,13 @@ export function initDocs(appContainer) {
       </div>
     </div>
   `;
+  
+  setTimeout(() => {
+    const preElements = document.querySelectorAll('pre');
+    preElements.forEach(pre => {
+      highlightPseudocodeInPre(pre);
+    });
+  }, 0);
 }
 
 function generateTOCItem(id, title) {
@@ -91,10 +100,7 @@ function sectionComments() {
       <span class="ml-1">Comments</span>
     </h2>
     <p>Comments start with <code class="bg-[#272a34] border border-[#353843] px-1 py-0.5 rounded">//</code> and continue to the end of the line. Place comments before code blocks or right at the end of a statement.<br>In your exams (specifically the last question of Paper 2), the examiner will expect to see comments detailing your logic and reasoning behind your code.</p>
-    <pre class="bg-[#272a34] p-2 mt-2 border border-[#353843] rounded-md font-mono overflow-auto">
-// This is a comment
-// This is another line of the same comment block</pre>
-  </div>
+    <pre class="bg-[#272a34] p-2 mt-2 border border-[#353843] rounded-md font-mono overflow-auto">// This is a comment</div>
   `;
 }
 

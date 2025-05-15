@@ -1,4 +1,3 @@
-
 export function definePseudocodeLanguage(monaco) {
   monaco.languages.register({ id: 'pseudocode' });
   monaco.languages.setMonarchTokensProvider('pseudocode', {
@@ -178,4 +177,171 @@ export function definePseudocodeLanguage(monaco) {
       { open: '\'', close: '\'' }
     ]
   });
+}
+
+export function highlightPseudocodeInPre(preElement, theme = null) {
+  if (!preElement || preElement.tagName !== 'PRE') return;
+  
+  const code = preElement.textContent;
+  if (!code) return;
+  
+  if (!theme) {
+    try {
+      theme = window.monaco?.editor?._themes?.['pseudocode-custom-theme'] || Theme;
+    } catch (e) {
+      import('./monaco-theme.js').then(module => {
+        theme = module.Theme;
+        applyHighlighting(code, theme);
+      });
+      return;
+    }
+  }
+  
+  
+  preElement.style.backgroundColor = theme.colors["editor.background"] || "#181A1F";
+  preElement.style.color = theme.colors["editor.foreground"] || "#D4D4D4";
+  
+  function tokenize(codeText) {
+    const tokens = [];
+    
+    const patterns = [
+      { type: 'keyword', regex: /\b(CONSTANT|ARRAY|OF|INPUT|OUTPUT|ELSE|ENDIF|CASE|OTHERWISE|ENDCASE|STEP|NEXT|REPEAT|UNTIL|DO|ENDWHILE|PROCEDURE|ENDPROCEDURE|FUNCTION|RETURNS|ENDFUNCTION|CALL|OPENFILE|READFILE|WRITEFILE|CLOSEFILE|READ|WRITE|DECLARE|IF|THEN|FOR|TO|WHILE|ENDWHILE|RETURN)\b/g },
+      { type: 'type', regex: /\b(INTEGER|REAL|CHAR|STRING|BOOLEAN)\b/g },
+      { type: 'boolean', regex: /\b(TRUE|FALSE)\b/g },
+      { type: 'operator', regex: /(\+|\-|\*|\/|\^|=|<|<=|>|>=|<>|←|AND|OR|NOT|DIV|MOD)/g },
+      { type: 'number', regex: /\b\d+(\.\d+)?\b/g },
+      { type: 'string', regex: /"([^"\\]|\\.)*"/g },
+      { type: 'char', regex: /'([^'\\]|\\.)'/g },
+      { type: 'comment', regex: /\/\/.*$/gm },
+      { type: 'variable', regex: /\b[a-zA-Z_]\w*\b/g }
+    ];
+    
+    const lines = codeText.split('\n');
+    
+    lines.forEach(line => {
+      let lineTokens = [];
+      
+      const commentMatch = /\/\/(.*)$/.exec(line);
+      if (commentMatch) {
+        const commentIndex = commentMatch.index;
+        if (commentIndex > 0) {
+          const beforeComment = line.substring(0, commentIndex);
+          processText(beforeComment, lineTokens);
+        }
+        
+        const commentText = line.substring(commentIndex);
+        lineTokens.push({
+          type: 'comment',
+          text: commentText
+        });
+      } else {
+        processText(line, lineTokens);
+      }
+      
+      tokens.push(lineTokens);
+    });
+    
+    function processText(text, lineTokens) {
+      let allMatches = [];
+      
+      patterns.forEach(pattern => {
+        let match;
+        pattern.regex.lastIndex = 0;
+        
+        while ((match = pattern.regex.exec(text)) !== null) {
+          allMatches.push({
+            type: pattern.type,
+            index: match.index,
+            length: match[0].length,
+            text: match[0]
+          });
+        }
+      });
+      
+      allMatches.sort((a, b) => a.index - b.index);
+      
+      const filteredMatches = [];
+      let lastEnd = 0;
+      
+      allMatches.forEach(match => {
+        if (match.index >= lastEnd) {
+          filteredMatches.push(match);
+          lastEnd = match.index + match.length;
+        }
+      });
+      
+      let currentIndex = 0;
+      
+      filteredMatches.forEach(match => {
+        if (match.index > currentIndex) {
+          lineTokens.push({
+            type: 'text',
+            text: text.substring(currentIndex, match.index)
+          });
+        }
+        
+        lineTokens.push({
+          type: match.type,
+          text: match.text
+        });
+        
+        currentIndex = match.index + match.length;
+      });
+      
+      if (currentIndex < text.length) {
+        lineTokens.push({
+          type: 'text',
+          text: text.substring(currentIndex)
+        });
+      }
+    }
+    
+    return tokens;
+  }
+  
+  function getColorForToken(tokenType) {
+    const tokenToThemeMap = {
+      'keyword': 'keyword',
+      'type': 'type',
+      'boolean': 'boolean',
+      'operator': 'operator',
+      'number': 'number',
+      'string': 'string',
+      'char': 'string',
+      'comment': 'comment',
+      'variable': 'variable',
+      'text': ''
+    };
+    
+    const themeToken = tokenToThemeMap[tokenType] || '';
+    
+    for (const rule of theme.rules) {
+      if (rule.token === themeToken) {
+        return `#${rule.foreground}`;
+      }
+    }
+    
+    return theme.colors["editor.foreground"] || "#D4D4D4";
+  }
+  
+  function applyHighlighting(codeText, themeObj) {
+    const tokens = tokenize(codeText);
+    
+    preElement.innerHTML = '';
+    
+    tokens.forEach((lineTokens, index) => {
+      const lineElement = document.createElement('div');
+      
+      lineTokens.forEach(token => {
+        const span = document.createElement('span');
+        span.textContent = token.text;
+        span.style.color = getColorForToken(token.type);
+        lineElement.appendChild(span);
+      });
+      
+      preElement.appendChild(lineElement);
+    });
+  }
+  
+  applyHighlighting(code, theme);
 }
