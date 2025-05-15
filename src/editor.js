@@ -2,6 +2,8 @@ import { Tokenizer } from './interpreter/tokenizer.js';
 import { Parser } from './interpreter/parser.js';
 import { Interpreter } from './interpreter/interpreter.js';
 import { initializeFileBrowser, getFileContent, saveFileContent } from './interpreter/modules/files.js';
+import { definePseudocodeLanguage } from './monaco-lang.js';
+import { Theme } from './monaco-theme.js';
 
 const PlayIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
 
@@ -17,15 +19,7 @@ export function initEditor(appContainer) {
       <div class="flex flex-col flex-grow overflow-hidden gap-2">
         <div class="toppanel w-full h-[70%] flex flex-col shadow-md">
           <div class="flex-grow relative overflow-hidden rounded-lg">
-            <div class="absolute inset-0 flex">
-              <div id="line-numbers" class="py-5 px-3 text-right bg-[#181A1F] text-[#555555] select-none font-mono text-sm w-auto min-w-[40px] overflow-hidden whitespace-pre"></div>
-              <textarea
-                id="code-editor"
-                class="flex-grow font-mono text-sm p-5 resize-none border-0 focus:ring-0 focus:outline-none bg-[#181A1F] text-[#fff] transition-colors whitespace-pre overflow-auto"
-                placeholder="Write your pseudocode here..."
-                spellCheck="false"
-              ></textarea>
-            </div>
+            <div id="monaco-editor" class="absolute inset-0 bg-[#181A1F] pt-4"></div>
           </div>
         </div>
 
@@ -55,86 +49,88 @@ export function initEditor(appContainer) {
     </div>
   `;
 
-  const codeEditor = document.getElementById('code-editor');
-  const lineNumbers = document.getElementById('line-numbers');
   const runButton = document.getElementById('run-button');
   const outputElement = document.getElementById('output');
   
   let currentFile = 'app.pseudo';
+  let editor = null;
 
-  initializeFileBrowser(document.querySelector('.toppanel'), (file) => {
-    if (currentFile) {
-      saveFileContent(currentFile, codeEditor.value);
-    }
+  initMonacoEditor().then(monacoEditor => {
+    editor = monacoEditor;
     
-    currentFile = file.name;
-    codeEditor.value = file.content || getFileContent(file.name);
-    updateLineNumbers();
+    const initialContent = getFileContent('app.pseudo') || 
+      '// Write your pseudocode here\n\n// Example:\nDECLARE name : STRING\nOUTPUT "What is your name?"\nINPUT name\nOUTPUT "Hello, " + name';
+    
+    editor.setValue(initialContent);
+    
+    initializeFileBrowser(document.querySelector('.toppanel'), (file) => {
+      if (currentFile) {
+        saveFileContent(currentFile, editor.getValue());
+      }
+      
+      currentFile = file.name;
+      editor.setValue(file.content || getFileContent(file.name));
+    });
+    
+    document.addEventListener('fileSelected', (event) => {
+      const file = event.detail;
+      
+      if (currentFile) {
+        saveFileContent(currentFile, editor.getValue());
+      }
+      
+      currentFile = file.name;
+      editor.setValue(file.content || getFileContent(file.name));
+    });
+    
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, runCode);
   });
-  
-  document.addEventListener('fileSelected', (event) => {
-    const file = event.detail;
-    
-    if (currentFile) {
-      saveFileContent(currentFile, codeEditor.value);
-    }
-    
-    currentFile = file.name;
-    codeEditor.value = file.content || getFileContent(file.name);
-    updateLineNumbers();
-  });
-  
-  codeEditor.value = getFileContent('app.pseudo') || '// Write your pseudocode here\n\n// Example:\nDECLARE name : STRING\nOUTPUT "What is your name?"\nINPUT name\nOUTPUT "Hello, " + name';
 
-  updateLineNumbers();
-
-  codeEditor.addEventListener('input', updateLineNumbers);
-  codeEditor.addEventListener('scroll', syncScroll);
-  codeEditor.addEventListener('keydown', handleKeyDown);
   runButton.addEventListener('click', runCode);
 
-  function handleKeyDown(e) {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      runCode();
-      return;
-    }
-    
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = this.selectionStart;
-      const end = this.selectionEnd;
+  function initMonacoEditor() {
+    return new Promise((resolve) => {
+      require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
       
-      this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
-      
-      this.selectionStart = this.selectionEnd = start + 2;
-      
-      updateLineNumbers();
-    }
-  }
-
-  function updateLineNumbers() {
-    const lines = codeEditor.value.split('\n');
-    const count = lines.length;
-    let lineNumbersHTML = '';
-    
-    for (let i = 1; i <= count; i++) {
-      lineNumbersHTML += i + '\n';
-    }
-    
-    lineNumbers.textContent = lineNumbersHTML;
-  }
-
-  function syncScroll() {
-    lineNumbers.scrollTop = codeEditor.scrollTop;
+      require(['vs/editor/editor.main'], () => {
+        definePseudocodeLanguage(monaco);
+        monaco.editor.defineTheme('pseudocode-custom-theme', Theme);
+        
+        const editor = monaco.editor.create(document.getElementById('monaco-editor'), {
+          value: '',
+          language: 'pseudocode',
+          theme: 'pseudocode-custom-theme',
+          automaticLayout: true,
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          fontSize: 14,
+          fontFamily: 'ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace',
+          tabSize: 2,
+          renderLineHighlight: 'all',
+          lineNumbers: 'on',
+          lineHeight: 1.6,
+          letterSpacing: 0.5,
+          scrollbar: {
+            vertical: 'auto',
+            horizontal: 'auto'
+          },
+          lineDecorationsWidth: 5,
+          lineNumbersMinChars: 3
+        });
+        
+        resolve(editor);
+      });
+    });
   }
 
   function runCode() {
-    if (currentFile) {
-      saveFileContent(currentFile, codeEditor.value);
+    if (editor && currentFile) {
+      saveFileContent(currentFile, editor.getValue());
     }
     
-    const code = codeEditor.value;
+    if (!editor) return;
+    
+    const code = editor.getValue();
     const interpreter = new BrowserInterpreter();
     
     try {
@@ -161,7 +157,7 @@ export function initEditor(appContainer) {
         interpreter.addError(error.message || 'Unknown error occurred');
       }
     }
-}
+  }
 }
 
 class BrowserInterpreter {
